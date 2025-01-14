@@ -53,12 +53,6 @@ func main() {
 
 	// pk api object thingy
 	pk := pkgo.New(pkAuth)
-	//load our system
-	sys, err := pk.System(loadedConfig.SystemID)
-	if err != nil {
-		log.Fatal("Error loading system")
-	}
-	log.Default().Print(sys)
 
 	// MongoDB connection
 	client, err := mongo.Connect(nil, options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -115,7 +109,78 @@ func main() {
 	})
 
 	app.Get("/system", func(c *fiber.Ctx) error {
-		return c.SendString(sys.Name)
+		// Retrieve system information
+		sys, err := pk.System(loadedConfig.SystemID)
+		if err != nil {
+			log.Println("Error loading system:", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to load system information",
+			})
+		}
+
+		// Construct the systemInfo JSON object
+		systemInfo := fiber.Map{
+			"id":          sys.ID,
+			"name":        sys.Name,
+			"avatar":      sys.AvatarURL,
+			"banner":      sys.Banner,
+			"color":       sys.Color,
+			"created":     sys.Created,
+			"description": sys.Description,
+			"tag":         sys.Tag,
+		}
+
+		// Return the JSON response
+		return c.JSON(systemInfo)
+	})
+
+	app.Get("/system/list", func(c *fiber.Ctx) error {
+		members, err := pk.Members(loadedConfig.SystemID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch members",
+			})
+		}
+
+		var membersList []map[string]interface{}
+
+		for _, member := range members {
+			// Assuming each member has fields Name, Description, etc.
+			membersList = append(membersList, map[string]interface{}{
+				"display": member.DisplayName,
+				"name":    member.Name,
+				"id":      member.ID,
+				// Add other fields you want to include
+			})
+		}
+
+		return c.JSON(membersList)
+	})
+
+	app.Get("/system/member/:id", func(c *fiber.Ctx) error {
+		idParam := c.Params("id")
+
+		member, err := pk.Member(idParam)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch member",
+			})
+		}
+
+		memberInfo := fiber.Map{
+			"display":     member.DisplayName,
+			"name":        member.Name,
+			"description": member.Description,
+			"id":          member.ID,
+			"created":     member.Created,
+			"color":       member.Color,
+			"avatar":      member.AvatarURL,
+			"banner":      member.Banner,
+			"birthday":    member.Birthday,
+			"pronouns":    member.Pronouns,
+		}
+
+		return c.JSON(memberInfo)
 	})
 
 	log.Fatal(app.Listen(":5080"))
