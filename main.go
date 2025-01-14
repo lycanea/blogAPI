@@ -183,5 +183,5 @@ func main() {
 		return c.JSON(memberInfo)
 	})
 
-	log.Fatal(app.Listen(":5080"))
+	log.Fatal(app.Listen(":8080"))
 }
