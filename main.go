@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
+	"github.com/starshine-sys/pkgo/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,7 +26,40 @@ type Post struct {
 	Color   []string `json:"colors"`
 }
 
+type config struct {
+	SystemID string
+}
+
 func main() {
+	// read config file
+	content, err := os.ReadFile("./config.json")
+	if err != nil {
+		log.Fatal("Error when opening file: ", err)
+	}
+
+	var loadedConfig config
+	err = json.Unmarshal(content, &loadedConfig)
+	if err != nil {
+		log.Fatal("Error during Unmarshal(): ", err)
+	}
+
+	// read dotenv file
+	err = godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Some error occured. Err: %s", err)
+	}
+
+	pkAuth := os.Getenv("pluralkit_auth")
+
+	// pk api object thingy
+	pk := pkgo.New(pkAuth)
+	//load our system
+	sys, err := pk.System(loadedConfig.SystemID)
+	if err != nil {
+		log.Fatal("Error loading system")
+	}
+	log.Default().Print(sys)
+
 	// MongoDB connection
 	client, err := mongo.Connect(nil, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
@@ -77,5 +114,9 @@ func main() {
 		return c.JSON(post)
 	})
 
-	log.Fatal(app.Listen(":8080"))
+	app.Get("/system", func(c *fiber.Ctx) error {
+		return c.SendString(sys.Name)
+	})
+
+	log.Fatal(app.Listen(":5080"))
 }
