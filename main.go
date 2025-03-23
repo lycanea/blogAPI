@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"github.com/starshine-sys/pkgo/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -55,7 +56,8 @@ func main() {
 	pk := pkgo.New(pkAuth)
 
 	// MongoDB connection
-	client, err := mongo.Connect(nil, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(nil,
+		options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,6 +73,13 @@ func main() {
 
 	// Fiber app setup
 	app := fiber.New()
+
+	// Configure CORS
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*", // i think this is like websites that this is allowed to be requested from
+		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders: "*",
+	}))
 
 	app.Get("/posts", func(c *fiber.Ctx) error {
 		cursor, err := postsCollection.Find(nil, bson.D{})
@@ -99,7 +108,8 @@ func main() {
 
 		// Use int32 value for the query
 		var post Post
-		err = postsCollection.FindOne(nil, bson.M{"_post_id_": int32(id)}).Decode(&post)
+		err = postsCollection.FindOne(nil, bson.M{"_post_id_": int32(id)}).
+			Decode(&post)
 		if err != nil {
 			log.Default().Print("Post not found:", id)
 			return c.Status(404).SendString("Post not found")
@@ -181,6 +191,10 @@ func main() {
 		}
 
 		return c.JSON(memberInfo)
+	})
+
+	app.Get("/modded/message", func(c *fiber.Ctx) error {
+		return c.SendString("test :3")
 	})
 
 	log.Fatal(app.Listen(":8080"))
