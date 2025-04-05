@@ -144,10 +144,12 @@ func main() {
 		var response []PostResponse
 		for _, post := range posts {
 			response = append(response, PostResponse{
-				ID:     post.ID,
-				Title:  post.Title,
-				Author: post.Author,
-				Color:  post.Color,
+				ID:      post.ID,
+				Post_ID: post.Post_ID,
+				Title:   post.Title,
+				Tags:    post.Tags,
+				Author:  post.Author,
+				Color:   post.Color,
 			})
 		}
 
